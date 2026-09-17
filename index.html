@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0f6b49">
-<title>Thu thập sản phẩm Cloud V0.2</title>
+<title>Thu thập sản phẩm Cloud V0.2.1</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <style>
@@ -18,7 +18,7 @@ h1{font-size:20px;margin:0} .sub{font-size:12px;opacity:.9;margin-top:3px} .scre
 label{display:block;font-size:13px;font-weight:800;margin:10px 0 5px} input,select,textarea{width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;font-size:15px;background:#fff}
 .small{font-size:12px;color:var(--muted);line-height:1.45} .item{padding:12px 0;border-bottom:1px solid #e6eee9} .name{font-weight:900} .pill{display:inline-block;font-size:11px;font-weight:800;padding:4px 8px;border-radius:999px;background:#fff3d6;color:#7d5d00} .ok{background:#e7f4ed;color:var(--g)}
 .bottom{position:fixed;bottom:0;left:0;right:0;max-width:640px;margin:auto;background:#fff;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(3,1fr);z-index:9} .bottom button{border:0;background:none;padding:10px 4px;color:#667a71;font-weight:800} .bottom .on{color:var(--g)}
-#reader{width:100%;min-height:270px} .photo{width:100%;max-height:190px;object-fit:contain;border:1px dashed #ccd9d2;border-radius:12px;background:#fafafa} .user{font-size:11px;text-align:right} .auth{max-width:420px;margin:42px auto;padding:14px} .auth h2{margin:0 0 6px} .hidden{display:none!important}
+#reader{width:100%;min-height:300px}.scan-tools{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:9px}.scan-tools button{padding:10px 4px;font-size:12px} .photo{width:100%;max-height:190px;object-fit:contain;border:1px dashed #ccd9d2;border-radius:12px;background:#fafafa} .user{font-size:11px;text-align:right} .auth{max-width:420px;margin:42px auto;padding:14px} .auth h2{margin:0 0 6px} .hidden{display:none!important}
 .notice{padding:10px 12px;border-radius:11px;background:#eef7f2;color:#315e4c;font-size:13px;line-height:1.5} .sync{font-size:12px;font-weight:800;color:#fff;background:#ffffff1f;padding:6px 9px;border-radius:999px}
 </style>
 </head>
@@ -36,7 +36,7 @@ label{display:block;font-size:13px;font-weight:800;margin:10px 0 5px} input,sele
 
 <div id="app" class="app hidden">
 <header>
- <div><h1>📦 Thu thập sản phẩm Cloud</h1><div class="sub">Barcode → Cloud → Xác minh → Kho chuẩn</div></div>
+ <div><h1>📦 Thu thập sản phẩm Cloud V0.2.1</h1><div class="sub">Barcode → Cloud → Xác minh → Kho chuẩn</div></div>
  <div><div class="sync">☁️ Firebase</div><div class="user" id="userEmail"></div><div class="user" style="text-decoration:underline;cursor:pointer" onclick="logout()">Đăng xuất</div></div>
 </header>
 <section id="home" class="screen on">
@@ -45,7 +45,17 @@ label{display:block;font-size:13px;font-weight:800;margin:10px 0 5px} input,sele
  <div class="card grid2"><button class="btn soft" onclick="manual()">✍️ Nhập tay</button><button class="btn soft" onclick="show('list')">📋 Bản ghi</button></div>
  <div class="card notice">Khi bấm <b>Xác minh</b>, sản phẩm sẽ được ghi vào <b>products/{barcode}</b>. Từ đó Sổ Tạp Hóa có thể quét mã và nhận tên ngay.</div>
 </section>
-<section id="scan" class="screen"><div class="card"><div id="reader"></div><div class="grid2" style="margin-top:8px"><button class="btn soft" onclick="stopScan()">Dừng</button><button class="btn soft" onclick="manualCode()">Nhập mã tay</button></div></div></section>
+<section id="scan" class="screen"><div class="card">
+<div id="reader"></div>
+<div class="scan-tools">
+<button class="btn soft" onclick="setZoom(1)">1×</button>
+<button class="btn soft" onclick="setZoom(2)">2×</button>
+<button class="btn soft" onclick="setZoom(3)">3×</button>
+<button class="btn soft" onclick="toggleTorch()">🔦 Đèn</button>
+</div>
+<div class="grid2" style="margin-top:8px"><button class="btn soft" onclick="stopScan()">Dừng</button><button class="btn soft" onclick="manualCode()">Nhập mã tay</button></div>
+<div class="small" style="margin-top:8px">Mã nhỏ: thử 2× hoặc 3×, giữ barcode nằm ngang và cách camera khoảng 8–15cm.</div>
+</div></section>
 <section id="form" class="screen"><div class="card">
  <label>Barcode / GTIN *</label><input id="barcode" inputmode="numeric">
  <label>Tên sản phẩm *</label><input id="pname">
@@ -78,7 +88,7 @@ const firebaseConfig={
 };
 firebase.initializeApp(firebaseConfig);
 const auth=firebase.auth(), db=firebase.firestore(), storage=firebase.storage();
-let submissions=[], verifiedProducts=[], qr=null, photoFile=null, unsubscribeSub=null, unsubscribeProducts=null;
+let submissions=[], verifiedProducts=[], qr=null, photoFile=null, unsubscribeSub=null, unsubscribeProducts=null, currentZoom=1, torchOn=false;
 
 function login(){authErr.textContent='';auth.signInWithEmailAndPassword(loginEmail.value.trim(),loginPass.value).catch(e=>authErr.textContent='Lỗi: '+e.message)}
 function logout(){auth.signOut()}
@@ -96,8 +106,70 @@ function stats(){sTotal.textContent=submissions.length;sPending.textContent=subm
 function show(id){document.querySelectorAll('.screen').forEach(x=>x.classList.remove('on'));document.getElementById(id).classList.add('on');document.querySelectorAll('.bottom button').forEach(x=>x.classList.remove('on'));let n=document.getElementById('n-'+id);if(n)n.classList.add('on');if(id==='list')renderList();if(id==='verify')renderVerify();if(id!=='scan')stopScan()}
 function clearForm(){barcode.value='';pname.value='';brand.value='';category.value='';size.value='';unit.value='cái';caseSize.value=1;source.value='Kệ siêu thị/cửa hàng';note.value='';photoFile=null;preview.classList.add('hidden');preview.removeAttribute('src');photoInput.value=''}
 function manual(){clearForm();show('form')} function manualCode(){let c=prompt('Nhập barcode/GTIN');if(!c)return;stopScan();clearForm();barcode.value=c.trim();show('form')}
-async function scan(){show('scan');try{qr=new Html5Qrcode('reader');await qr.start({facingMode:'environment'},{fps:15,qrbox:{width:300,height:150}},c=>{stopScan();clearForm();barcode.value=c;show('form')},()=>{})}catch(e){alert('Không mở được camera. Hãy cấp quyền Camera hoặc nhập mã tay.')}}
-async function stopScan(){if(qr){try{await qr.stop()}catch(e){}try{await qr.clear()}catch(e){}qr=null}}
+async function scan(){
+  show('scan');
+  currentZoom=1; torchOn=false;
+  try{
+    qr=new Html5Qrcode('reader');
+    await qr.start(
+      {facingMode:'environment'},
+      {
+        fps:20,
+        qrbox:(viewWidth,viewHeight)=>{
+          const w=Math.min(Math.floor(viewWidth*0.92),360);
+          const h=Math.max(110,Math.min(150,Math.floor(viewHeight*0.28)));
+          return {width:w,height:h};
+        },
+        aspectRatio:1.7777778,
+        disableFlip:true,
+        experimentalFeatures:{useBarCodeDetectorIfSupported:true}
+      },
+      c=>{stopScan();clearForm();barcode.value=c;show('form')},
+      ()=>{}
+    );
+    setTimeout(async()=>{
+      try{
+        const caps=qr.getRunningTrackCameraCapabilities();
+        if(caps && caps.focusModeFeature && caps.focusModeFeature().isSupported()){
+          const feature=caps.focusModeFeature();
+          const values=feature.getValue();
+          if(Array.isArray(values) && values.includes('continuous')) await feature.apply('continuous');
+        }
+      }catch(e){}
+    },600);
+  }catch(e){
+    alert('Không mở được camera. Hãy cấp quyền Camera hoặc nhập mã tay.');
+  }
+}
+async function setZoom(z){
+  if(!qr)return;
+  try{
+    const caps=qr.getRunningTrackCameraCapabilities();
+    if(caps && caps.zoomFeature && caps.zoomFeature().isSupported()){
+      const f=caps.zoomFeature();
+      const target=Math.max(f.min(),Math.min(f.max(),z));
+      await f.apply(target);
+      currentZoom=target;
+    } else alert('Camera/trình duyệt này không hỗ trợ zoom trực tiếp.');
+  }catch(e){alert('Không chỉnh được zoom trên thiết bị này.');}
+}
+async function toggleTorch(){
+  if(!qr)return;
+  try{
+    const caps=qr.getRunningTrackCameraCapabilities();
+    if(caps && caps.torchFeature && caps.torchFeature().isSupported()){
+      torchOn=!torchOn;
+      await caps.torchFeature().apply(torchOn);
+    } else alert('Thiết bị này không hỗ trợ bật đèn từ trình duyệt.');
+  }catch(e){alert('Không bật được đèn camera.');}
+}
+async function stopScan(){
+  if(qr){
+    try{await qr.stop()}catch(e){}
+    try{await qr.clear()}catch(e){}
+    qr=null;
+  }
+}
 function previewPhoto(inp){photoFile=inp.files&&inp.files[0]||null;if(!photoFile)return;const r=new FileReader();r.onload=e=>{preview.src=e.target.result;preview.classList.remove('hidden')};r.readAsDataURL(photoFile)}
 async function uploadPhoto(barcodeValue, docId){if(!photoFile)return '';const ext=(photoFile.name.split('.').pop()||'jpg').toLowerCase();const ref=storage.ref('product-submissions/'+auth.currentUser.uid+'/'+docId+'-'+barcodeValue+'.'+ext);await ref.put(photoFile);return await ref.getDownloadURL()}
 async function saveSubmission(next){
