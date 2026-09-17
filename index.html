@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f6b49">
+<title>Thu thập sản phẩm Cloud V0.2</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<style>
+:root{--g:#0f6b49;--g2:#12835b;--bg:#f4f7f5;--line:#dce7e1;--muted:#6d8178;--red:#c94e4e;--amber:#a26d00}
+*{box-sizing:border-box} body{margin:0;font-family:Arial,sans-serif;background:var(--bg);color:#17342a}
+.app{max-width:640px;margin:auto;min-height:100vh;padding-bottom:78px} header{background:linear-gradient(135deg,var(--g),var(--g2));color:#fff;padding:16px;position:sticky;top:0;z-index:8;display:flex;justify-content:space-between;gap:12px;align-items:center}
+h1{font-size:20px;margin:0} .sub{font-size:12px;opacity:.9;margin-top:3px} .screen{display:none;padding:14px} .screen.on{display:block}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:0 3px 12px #00000008}
+.btn{border:0;border-radius:12px;padding:13px;font-weight:800;font-size:14px;cursor:pointer} .primary{background:var(--g);color:#fff} .soft{background:#e7f4ed;color:var(--g)} .warn{background:#fff3d6;color:#7d5d00} .danger{background:#fdeaea;color:var(--red)}
+.full{width:100%} .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px} .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px} .stat{background:#f8fbf9;border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center} .num{font-size:21px;font-weight:900;color:var(--g)}
+label{display:block;font-size:13px;font-weight:800;margin:10px 0 5px} input,select,textarea{width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;font-size:15px;background:#fff}
+.small{font-size:12px;color:var(--muted);line-height:1.45} .item{padding:12px 0;border-bottom:1px solid #e6eee9} .name{font-weight:900} .pill{display:inline-block;font-size:11px;font-weight:800;padding:4px 8px;border-radius:999px;background:#fff3d6;color:#7d5d00} .ok{background:#e7f4ed;color:var(--g)}
+.bottom{position:fixed;bottom:0;left:0;right:0;max-width:640px;margin:auto;background:#fff;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(3,1fr);z-index:9} .bottom button{border:0;background:none;padding:10px 4px;color:#667a71;font-weight:800} .bottom .on{color:var(--g)}
+#reader{width:100%;min-height:270px} .photo{width:100%;max-height:190px;object-fit:contain;border:1px dashed #ccd9d2;border-radius:12px;background:#fafafa} .user{font-size:11px;text-align:right} .auth{max-width:420px;margin:42px auto;padding:14px} .auth h2{margin:0 0 6px} .hidden{display:none!important}
+.notice{padding:10px 12px;border-radius:11px;background:#eef7f2;color:#315e4c;font-size:13px;line-height:1.5} .sync{font-size:12px;font-weight:800;color:#fff;background:#ffffff1f;padding:6px 9px;border-radius:999px}
+</style>
+</head>
+<body>
+<div id="authBox" class="auth">
+  <div class="card">
+    <h2>☁️ Thu thập sản phẩm</h2>
+    <div class="small">Đăng nhập để dữ liệu được lưu vào kho trung tâm Sổ Tạp Hóa.</div>
+    <label>Email</label><input id="loginEmail" type="email" placeholder="nhanvien@email.com">
+    <label>Mật khẩu</label><input id="loginPass" type="password" placeholder="••••••••">
+    <button class="btn primary full" style="margin-top:12px" onclick="login()">Đăng nhập</button>
+    <div id="authErr" class="small" style="color:#c94e4e;margin-top:8px"></div>
+  </div>
+</div>
+
+<div id="app" class="app hidden">
+<header>
+ <div><h1>📦 Thu thập sản phẩm Cloud</h1><div class="sub">Barcode → Cloud → Xác minh → Kho chuẩn</div></div>
+ <div><div class="sync">☁️ Firebase</div><div class="user" id="userEmail"></div><div class="user" style="text-decoration:underline;cursor:pointer" onclick="logout()">Đăng xuất</div></div>
+</header>
+<section id="home" class="screen on">
+ <div class="card"><div class="stats"><div class="stat"><div class="num" id="sTotal">0</div><div class="small">Bản ghi</div></div><div class="stat"><div class="num" id="sPending">0</div><div class="small">Chờ duyệt</div></div><div class="stat"><div class="num" id="sVerified">0</div><div class="small">Kho chuẩn</div></div></div></div>
+ <div class="card"><button class="btn primary full" style="font-size:18px" onclick="scan()">📷 QUÉT SẢN PHẨM MỚI</button><div class="small" style="text-align:center;margin-top:8px">Dữ liệu lưu trực tiếp lên Firebase</div></div>
+ <div class="card grid2"><button class="btn soft" onclick="manual()">✍️ Nhập tay</button><button class="btn soft" onclick="show('list')">📋 Bản ghi</button></div>
+ <div class="card notice">Khi bấm <b>Xác minh</b>, sản phẩm sẽ được ghi vào <b>products/{barcode}</b>. Từ đó Sổ Tạp Hóa có thể quét mã và nhận tên ngay.</div>
+</section>
+<section id="scan" class="screen"><div class="card"><div id="reader"></div><div class="grid2" style="margin-top:8px"><button class="btn soft" onclick="stopScan()">Dừng</button><button class="btn soft" onclick="manualCode()">Nhập mã tay</button></div></div></section>
+<section id="form" class="screen"><div class="card">
+ <label>Barcode / GTIN *</label><input id="barcode" inputmode="numeric">
+ <label>Tên sản phẩm *</label><input id="pname">
+ <div class="grid2"><div><label>Thương hiệu</label><input id="brand"></div><div><label>Nhóm hàng</label><input id="category"></div></div>
+ <div class="grid2"><div><label>Quy cách</label><input id="size" placeholder="330ml / 180g"></div><div><label>Đơn vị</label><select id="unit"><option>cái</option><option>gói</option><option>chai</option><option>lon</option><option>hộp</option><option>tuýp</option><option>túi</option></select></div></div>
+ <label>Quy đổi thùng/lốc</label><input id="caseSize" type="number" value="1" min="1">
+ <label>Ảnh mặt trước</label><input id="photoInput" type="file" accept="image/*" capture="environment" onchange="previewPhoto(this)"><img id="preview" class="photo hidden">
+ <label>Nguồn</label><select id="source"><option>Kệ siêu thị/cửa hàng</option><option>Website hãng</option><option>Nhà phân phối</option><option>Khác</option></select>
+ <label>Ghi chú</label><textarea id="note"></textarea>
+ <div class="grid2" style="margin-top:10px"><button class="btn primary" onclick="saveSubmission(false)">☁️ Lưu Cloud</button><button class="btn warn" onclick="saveSubmission(true)">Lưu & quét tiếp</button></div>
+</div></section>
+<section id="list" class="screen"><div class="card"><input id="q" placeholder="Tìm barcode, tên, hãng..." oninput="renderList()"></div><div class="card" id="listbox"></div></section>
+<section id="verify" class="screen"><div class="card notice">Bản thử nghiệm: tài khoản đăng nhập có thể xác minh. Bản sau nên phân quyền riêng Quản trị viên.</div><div class="card" id="verifybox"></div></section>
+<nav class="bottom"><button id="n-home" class="on" onclick="show('home')">🏠<br>Trang chủ</button><button id="n-list" onclick="show('list')">📋<br>Sản phẩm</button><button id="n-verify" onclick="show('verify')">✅<br>Xác minh</button></nav>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+const firebaseConfig={
+  apiKey:"AIzaSyArZ5l0pinLmc3kNpm_t5M8nj0lCoDeacE",
+  authDomain:"so-tap-hoa-45c79.firebaseapp.com",
+  projectId:"so-tap-hoa-45c79",
+  storageBucket:"so-tap-hoa-45c79.firebasestorage.app",
+  messagingSenderId:"146744756245",
+  appId:"1:146744756245:web:03a4cc1117d3fb3ec5a61c"
+};
+firebase.initializeApp(firebaseConfig);
+const auth=firebase.auth(), db=firebase.firestore(), storage=firebase.storage();
+let submissions=[], verifiedProducts=[], qr=null, photoFile=null, unsubscribeSub=null, unsubscribeProducts=null;
+
+function login(){authErr.textContent='';auth.signInWithEmailAndPassword(loginEmail.value.trim(),loginPass.value).catch(e=>authErr.textContent='Lỗi: '+e.message)}
+function logout(){auth.signOut()}
+auth.onAuthStateChanged(user=>{
+ if(user){authBox.classList.add('hidden');app.classList.remove('hidden');userEmail.textContent=user.email||user.uid;startListeners();}
+ else{app.classList.add('hidden');authBox.classList.remove('hidden');stopListeners();}
+});
+function startListeners(){
+ stopListeners();
+ unsubscribeSub=db.collection('productSubmissions').orderBy('createdAt','desc').limit(300).onSnapshot(s=>{submissions=s.docs.map(d=>({id:d.id,...d.data()}));stats();renderList();renderVerify();});
+ unsubscribeProducts=db.collection('products').limit(1000).onSnapshot(s=>{verifiedProducts=s.docs.map(d=>({id:d.id,...d.data()}));stats();});
+}
+function stopListeners(){if(unsubscribeSub)unsubscribeSub();if(unsubscribeProducts)unsubscribeProducts();unsubscribeSub=unsubscribeProducts=null}
+function stats(){sTotal.textContent=submissions.length;sPending.textContent=submissions.filter(x=>x.status!=='verified').length;sVerified.textContent=verifiedProducts.length}
+function show(id){document.querySelectorAll('.screen').forEach(x=>x.classList.remove('on'));document.getElementById(id).classList.add('on');document.querySelectorAll('.bottom button').forEach(x=>x.classList.remove('on'));let n=document.getElementById('n-'+id);if(n)n.classList.add('on');if(id==='list')renderList();if(id==='verify')renderVerify();if(id!=='scan')stopScan()}
+function clearForm(){barcode.value='';pname.value='';brand.value='';category.value='';size.value='';unit.value='cái';caseSize.value=1;source.value='Kệ siêu thị/cửa hàng';note.value='';photoFile=null;preview.classList.add('hidden');preview.removeAttribute('src');photoInput.value=''}
+function manual(){clearForm();show('form')} function manualCode(){let c=prompt('Nhập barcode/GTIN');if(!c)return;stopScan();clearForm();barcode.value=c.trim();show('form')}
+async function scan(){show('scan');try{qr=new Html5Qrcode('reader');await qr.start({facingMode:'environment'},{fps:15,qrbox:{width:300,height:150}},c=>{stopScan();clearForm();barcode.value=c;show('form')},()=>{})}catch(e){alert('Không mở được camera. Hãy cấp quyền Camera hoặc nhập mã tay.')}}
+async function stopScan(){if(qr){try{await qr.stop()}catch(e){}try{await qr.clear()}catch(e){}qr=null}}
+function previewPhoto(inp){photoFile=inp.files&&inp.files[0]||null;if(!photoFile)return;const r=new FileReader();r.onload=e=>{preview.src=e.target.result;preview.classList.remove('hidden')};r.readAsDataURL(photoFile)}
+async function uploadPhoto(barcodeValue, docId){if(!photoFile)return '';const ext=(photoFile.name.split('.').pop()||'jpg').toLowerCase();const ref=storage.ref('product-submissions/'+auth.currentUser.uid+'/'+docId+'-'+barcodeValue+'.'+ext);await ref.put(photoFile);return await ref.getDownloadURL()}
+async function saveSubmission(next){
+ const b=barcode.value.trim(), n=pname.value.trim(); if(!b||!n){alert('Cần Barcode và Tên sản phẩm.');return}
+ const btns=[...document.querySelectorAll('#form button')];btns.forEach(x=>x.disabled=true);
+ try{
+   const ref=db.collection('productSubmissions').doc();
+   let imageUrl='';
+   if(photoFile) imageUrl=await uploadPhoto(b,ref.id);
+   await ref.set({barcode:b,name:n,brand:brand.value.trim(),category:category.value.trim(),size:size.value.trim(),unit:unit.value,caseSize:Math.max(1,Number(caseSize.value)||1),imageUrl,source:source.value,note:note.value.trim(),status:'pending',submittedBy:auth.currentUser.uid,submittedByEmail:auth.currentUser.email||'',createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+   alert('Đã lưu lên Cloud: '+n);
+   if(next){clearForm();scan()} else show('list');
+ }catch(e){alert('Lỗi lưu Cloud: '+e.message)}finally{btns.forEach(x=>x.disabled=false)}
+}
+function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function renderList(){if(!listbox)return;const z=(q&&q.value||'').toLowerCase();const a=submissions.filter(x=>(String(x.barcode)+' '+x.name+' '+(x.brand||'')).toLowerCase().includes(z));listbox.innerHTML=a.length?a.map(x=>`<div class="item"><div class="name">${esc(x.name)}</div><div class="small">${esc(x.barcode)} · ${esc(x.brand||'Chưa hãng')} · ${esc(x.size||'')}<br>${esc(x.submittedByEmail||'')}</div><div style="margin-top:6px"><span class="pill ${x.status==='verified'?'ok':''}">${x.status==='verified'?'Đã xác minh':'Chờ xác minh'}</span></div></div>`).join(''):'<div class="small">Chưa có bản ghi.</div>'}
+function renderVerify(){if(!verifybox)return;const a=submissions.filter(x=>x.status!=='verified');verifybox.innerHTML=a.length?a.map(x=>`<div class="item"><div class="name">${esc(x.name)}</div><div class="small">${esc(x.barcode)} · ${esc(x.brand||'')} · ${esc(x.size||'')}</div><div class="grid2" style="margin-top:8px"><button class="btn primary" onclick="verifyItem('${x.id}')">✅ Xác minh</button><button class="btn danger" onclick="rejectItem('${x.id}')">✕ Loại</button></div></div>`).join(''):'<div class="small">Không còn sản phẩm chờ xác minh.</div>'}
+async function verifyItem(id){
+ const x=submissions.find(p=>p.id===id);if(!x)return;
+ if(!confirm('Xác minh barcode '+x.barcode+' là '+x.name+'?'))return;
+ const p={barcode:String(x.barcode),name:x.name,brand:x.brand||'',category:x.category||'',size:x.size||'',unit:x.unit||'cái',caseSize:x.caseSize||1,imageUrl:x.imageUrl||'',source:x.source||'',status:'verified',verifiedBy:auth.currentUser.uid,verifiedByEmail:auth.currentUser.email||'',verifiedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
+ try{
+  const batch=db.batch();batch.set(db.collection('products').doc(String(x.barcode)),p,{merge:true});batch.update(db.collection('productSubmissions').doc(id),{status:'verified',verifiedAt:firebase.firestore.FieldValue.serverTimestamp(),verifiedBy:auth.currentUser.uid});await batch.commit();
+ }catch(e){alert('Lỗi xác minh: '+e.message)}
+}
+async function rejectItem(id){if(!confirm('Đánh dấu bản ghi này là loại bỏ?'))return;try{await db.collection('productSubmissions').doc(id).update({status:'rejected',rejectedAt:firebase.firestore.FieldValue.serverTimestamp(),rejectedBy:auth.currentUser.uid})}catch(e){alert(e.message)}}
+</script>
+</body></html>
