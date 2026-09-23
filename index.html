@@ -41,7 +41,7 @@ label{display:block;font-size:13px;font-weight:800;margin:10px 0 5px} input,sele
 </header>
 <section id="home" class="screen on">
  <div class="card"><div class="stats"><div class="stat"><div class="num" id="sTotal">0</div><div class="small">Bản ghi</div></div><div class="stat"><div class="num" id="sPending">0</div><div class="small">Chờ duyệt</div></div><div class="stat"><div class="num" id="sVerified">0</div><div class="small">Kho chuẩn</div></div></div></div>
- <div class="card"><button class="btn primary full" style="font-size:18px" onclick="scan()">📷 QUÉT SẢN PHẨM MỚI</button><div class="small" style="text-align:center;margin-top:8px">Dữ liệu lưu trực tiếp lên Firebase</div></div>
+  <div class="card"><button class="btn primary full" style="font-size:18px" onclick="scan()">📷 QUÉT SẢN PHẨM MỚI</button><div class="small" style="text-align:center;margin-top:8px">Dữ liệu lưu trực tiếp lên Firebase</div><div id="cameraStatus" class="small" style="text-align:center;margin-top:6px;"></div></div>
  <div class="card grid2"><button class="btn soft" onclick="manual()">✍️ Nhập tay</button><button class="btn soft" onclick="show('list')">📋 Bản ghi</button></div>
  <div class="card notice">Khi bấm <b>Xác minh</b>, sản phẩm sẽ được ghi vào <b>products/{barcode}</b>. Từ đó Sổ Tạp Hóa có thể quét mã và nhận tên ngay.</div>
 </section>
@@ -103,7 +103,7 @@ let submissions=[], verifiedProducts=[], qr=null, photoFile=null, unsubscribeSub
 function login(){authErr.textContent='';auth.signInWithEmailAndPassword(loginEmail.value.trim(),loginPass.value).catch(e=>authErr.textContent='Lỗi: '+e.message)}
 function logout(){auth.signOut()}
 auth.onAuthStateChanged(user=>{
- if(user){authBox.classList.add('hidden');app.classList.remove('hidden');userEmail.textContent=user.email||user.uid;startListeners();}
+ if(user){authBox.classList.add('hidden');app.classList.remove('hidden');userEmail.textContent=user.email||user.uid;startListeners();checkCameraPermission();}
  else{app.classList.add('hidden');authBox.classList.remove('hidden');stopListeners();}
 });
 function startListeners(){
@@ -113,6 +113,23 @@ function startListeners(){
 }
 function stopListeners(){if(unsubscribeSub)unsubscribeSub();if(unsubscribeProducts)unsubscribeProducts();unsubscribeSub=unsubscribeProducts=null}
 function stats(){sTotal.textContent=submissions.length;sPending.textContent=submissions.filter(x=>x.status!=='verified').length;sVerified.textContent=verifiedProducts.length}
+async function checkCameraPermission(){
+  const box = document.getElementById('cameraStatus');
+  if (!box) return;
+  if (!navigator.permissions || !navigator.permissions.query){ box.textContent = ''; return; }
+  try{
+    const status = await navigator.permissions.query({ name: 'camera' });
+    updateCameraStatusUI(status.state);
+    status.onchange = () => updateCameraStatusUI(status.state);
+  }catch(e){ box.textContent = ''; }
+}
+function updateCameraStatusUI(state){
+  const box = document.getElementById('cameraStatus');
+  if (!box) return;
+  if (state === 'granted') box.innerHTML = '✅ Camera đã được cấp quyền';
+  else if (state === 'denied') box.innerHTML = '⚠️ Camera đang bị chặn — bấm 🔒 cạnh địa chỉ web để mở lại quyền';
+  else box.textContent = '';
+}
 function show(id){document.querySelectorAll('.screen').forEach(x=>x.classList.remove('on'));document.getElementById(id).classList.add('on');document.querySelectorAll('.bottom button').forEach(x=>x.classList.remove('on'));let n=document.getElementById('n-'+id);if(n)n.classList.add('on');if(id==='list')renderList();if(id==='verify')renderVerify();if(id!=='scan')stopScan()}
 function clearForm(){barcode.value='';pname.value='';brand.value='';category.value='';size.value='';unit.value='cái';caseSize.value=1;source.value='Kệ siêu thị/cửa hàng';note.value='';photoFile=null;preview.classList.add('hidden');preview.removeAttribute('src');photoInput.value=''}
 function manual(){editingSubmissionId=null;clearForm();show('form')} function manualCode(){let c=prompt('Nhập barcode/GTIN');if(!c)return;stopScan();clearForm();barcode.value=c.trim();show('form')}
@@ -165,7 +182,19 @@ async function scan(){
       }catch(e){}
     },600);
   }catch(e){
-    alert('Không mở được camera. Hãy cấp quyền Camera hoặc nhập mã tay.');
+    const name = e && e.name ? e.name : '';
+    let msg = 'Không mở được camera. ';
+    if (name === 'NotAllowedError' || String(e).includes('Permission')){
+      msg += 'Bạn đã từ chối quyền Camera trước đó.\n\nCách sửa: vào Cài đặt trình duyệt (biểu tượng ổ khóa 🔒 cạnh địa chỉ web) → Quyền → Camera → chọn "Cho phép".';
+    } else if (name === 'NotFoundError'){
+      msg += 'Không tìm thấy camera trên thiết bị này.';
+    } else if (name === 'NotReadableError'){
+      msg += 'Camera đang được dùng bởi ứng dụng khác. Hãy đóng app/tab khác đang dùng camera rồi thử lại.';
+    } else {
+      msg += 'Vui lòng cấp quyền Camera hoặc dùng "Nhập mã tay".';
+    }
+    alert(msg);
+    show('home');
   }
 }
 async function setZoom(z){
