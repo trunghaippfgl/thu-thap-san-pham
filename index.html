@@ -155,14 +155,14 @@ async function scan(){
         stopScan();
         const existingVerified = verifiedProducts.find(p => String(p.id) === String(c));
         const existingSubmission = submissions.find(s => String(s.barcode) === String(c) && s.status !== 'rejected');
-        if (existingVerified){
+       if (existingVerified){
           alert('⚠️ Mã ' + c + ' đã có trong KHO CHUẨN: "' + existingVerified.name + '". Không cần gửi lại.');
-          openDetailByBarcode(c, 'verified');
+          scan();
           return;
         }
         if (existingSubmission){
-          alert('⚠️ Mã ' + c + ' đã từng gửi trước đó: "' + existingSubmission.name + '" (' + (existingSubmission.status==='verified'?'Đã xác minh':'Chờ xác minh') + '). Đang mở lại để bạn xem/sửa.');
-          openDetail(existingSubmission.id);
+          alert('⚠️ Mã ' + c + ' đã từng gửi trước đó: "' + existingSubmission.name + '" (' + (existingSubmission.status==='verified'?'Đã xác minh':'Chờ xác minh') + ').');
+          scan();
           return;
         }
         clearForm();
