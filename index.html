@@ -340,5 +340,11 @@ async function verifyItem(id){
  }catch(e){alert('Lỗi xác minh: '+e.message)}
 }
 async function rejectItem(id){if(!confirm('Đánh dấu bản ghi này là loại bỏ?'))return;try{await db.collection('productSubmissions').doc(id).update({status:'rejected',rejectedAt:firebase.firestore.FieldValue.serverTimestamp(),rejectedBy:auth.currentUser.uid})}catch(e){alert(e.message)}}
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    location.reload();
+  });
+}
 </script>
 </body></html>
