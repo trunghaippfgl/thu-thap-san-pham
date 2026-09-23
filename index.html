@@ -20,9 +20,12 @@ label{display:block;font-size:13px;font-weight:800;margin:10px 0 5px} input,sele
 .bottom{position:fixed;bottom:0;left:0;right:0;max-width:640px;margin:auto;background:#fff;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(3,1fr);z-index:9} .bottom button{border:0;background:none;padding:10px 4px;color:#667a71;font-weight:800} .bottom .on{color:var(--g)}
 #reader{width:100%;min-height:300px}.scan-tools{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:9px}.scan-tools button{padding:10px 4px;font-size:12px} .photo{width:100%;max-height:190px;object-fit:contain;border:1px dashed #ccd9d2;border-radius:12px;background:#fafafa} .user{font-size:11px;text-align:right} .auth{max-width:420px;margin:42px auto;padding:14px} .auth h2{margin:0 0 6px} .hidden{display:none!important}
 .notice{padding:10px 12px;border-radius:11px;background:#eef7f2;color:#315e4c;font-size:13px;line-height:1.5} .sync{font-size:12px;font-weight:800;color:#fff;background:#ffffff1f;padding:6px 9px;border-radius:999px}
+#toast{position:fixed;top:16px;left:50%;transform:translateX(-50%) translateY(-20px);background:#17342a;color:#fff;padding:11px 18px;border-radius:999px;font-size:13px;font-weight:800;z-index:99;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;box-shadow:0 6px 18px #00000030}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 </style>
 </head>
 <body>
+<div id="toast"></div>
 <div id="authBox" class="auth">
   <div class="card">
     <h2>☁️ Thu thập sản phẩm</h2>
@@ -245,12 +248,22 @@ async function saveSubmission(next){
      payload.createdAt=firebase.firestore.FieldValue.serverTimestamp();
      await ref.set(payload);
    }
+  showToast('✅ Đã lưu: '+n);
    editingSubmissionId=null;
    clearForm();
    scan();
  }catch(e){alert('Lỗi lưu Cloud: '+e.message)}finally{btns.forEach(x=>x.disabled=false)}
 }
 function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+let toastTimer=null;
+function showToast(msg){
+  const el=document.getElementById('toast');
+  if(!el)return;
+  el.textContent=msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>{el.classList.remove('show')},3000);
+}
 function renderList(){
   if(!listbox)return;
   const z=(q&&q.value||'').toLowerCase();
