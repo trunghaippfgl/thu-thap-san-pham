@@ -245,8 +245,9 @@ async function saveSubmission(next){
      payload.createdAt=firebase.firestore.FieldValue.serverTimestamp();
      await ref.set(payload);
    }
-   alert('Đã lưu lên Cloud: '+n);
-   editingSubmissionId=null;if(next){clearForm();scan()} else show('list');
+   editingSubmissionId=null;
+   clearForm();
+   scan();
  }catch(e){alert('Lỗi lưu Cloud: '+e.message)}finally{btns.forEach(x=>x.disabled=false)}
 }
 function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
