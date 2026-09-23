@@ -134,7 +134,24 @@ async function scan(){
         disableFlip:true,
         experimentalFeatures:{useBarCodeDetectorIfSupported:true}
       },
-      c=>{stopScan();clearForm();barcode.value=c;show('form')},
+            c=>{
+        stopScan();
+        const existingVerified = verifiedProducts.find(p => String(p.id) === String(c));
+        const existingSubmission = submissions.find(s => String(s.barcode) === String(c) && s.status !== 'rejected');
+        if (existingVerified){
+          alert('⚠️ Mã ' + c + ' đã có trong KHO CHUẨN: "' + existingVerified.name + '". Không cần gửi lại.');
+          openDetailByBarcode(c, 'verified');
+          return;
+        }
+        if (existingSubmission){
+          alert('⚠️ Mã ' + c + ' đã từng gửi trước đó: "' + existingSubmission.name + '" (' + (existingSubmission.status==='verified'?'Đã xác minh':'Chờ xác minh') + '). Đang mở lại để bạn xem/sửa.');
+          openDetail(existingSubmission.id);
+          return;
+        }
+        clearForm();
+        barcode.value=c;
+        show('form');
+      },
       ()=>{}
     );
     setTimeout(async()=>{
@@ -220,6 +237,15 @@ function renderList(){
         <div style="font-size:22px;color:#789">›</div>
       </div>
     </div>`).join(''):'<div class="small">Chưa có bản ghi.</div>';
+}
+  function openDetailByBarcode(barcodeValue, type){
+  if (type === 'verified'){
+    const p = verifiedProducts.find(x => String(x.id) === String(barcodeValue));
+    if (!p) return;
+    show('list');
+    alert('Sản phẩm "' + p.name + '" (mã ' + barcodeValue + ') đã có trong kho chuẩn, không cần thu thập lại.');
+    return;
+  }
 }
 function openDetail(id){
   currentDetailId=id;
